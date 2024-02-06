@@ -6,11 +6,11 @@
 /////
 
 // flywheel Motor
-pros::Motor Fly(3, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCODER_COUNTS);
+pros::Motor Fly(20, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCODER_COUNTS);
 
 // intake motors
 // pros::Motor IntakeRight(10, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor Intake(1, pros::E_MOTOR_GEARSET_06, false, pros::E_MOTOR_ENCODER_COUNTS);
+pros::Motor Intake(17, pros::E_MOTOR_GEARSET_06, false, pros::E_MOTOR_ENCODER_COUNTS);
 
 // Expansion
 pros::ADIDigitalOut Walls('H');
@@ -43,7 +43,7 @@ ez::Drive chassis (
 	// eg. if your drive is 84:36 where the 36t is powered, your RATIO would be 84/36 which is 2.333
 	// eg. if your drive is 60:36 where the 36t is powered, your RATIO would be 60/36 which is 0.6
 	// eg. if your drive is 36:60 where the 60t is powered, your RATIO would be 36/60 which is 0.6
-	,1.33333333
+	,1
 );
 
 
@@ -149,28 +149,18 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 
-bool intaketoggle = false;
 bool shoottoggle = false;
-bool verticalExpanded = false;
+bool intakeUp = false;
 bool wallsExpanded = false;
 bool liftExpanded = false;
-double counter = 0;
 bool flyReverse = false;
-bool intakeallowed = false;
+bool climb = false;
 int power = 125;
 
 void opcontrol() {
 	// This is preference to what you like to drive on
 	chassis.drive_brake_set(MOTOR_BRAKE_COAST);
-    int timer = 0;
-    int wallsTimer = 0;
-    int verticalTimer = 0;
-    int liftTimer = 0;
-    int flyR = 0;
-    int fly = 0;
-    int pwr = 0;
-    int ds = 0;
-  
+
   	while (true) {
     // PID Tuner
     // After you find values that you're happy with, you'll have to set them in auton.cpp
@@ -187,57 +177,7 @@ void opcontrol() {
         	autonomous();
 
       	chassis.pid_tuner_iterate(); // Allow PID Tuner to iterate
-    } 
-
-        // intake
-        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-            Intake = 127;
-        } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            Intake = -127;
-        } else {
-            Intake = 0;
-        }
-
-        // walls
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1) && wallsTimer <= timer) {
-            wallsExpanded = !wallsExpanded;
-            Walls.set_value(wallsExpanded);
-            wallsTimer = timer + 50;
-        }
-
-        // vertical walls
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2) && verticalExpanded <= timer) {
-            verticalExpanded = !verticalExpanded;
-            IntakePneumatic.set_value(verticalExpanded);
-            verticalTimer = timer + 50;
-        }
-
-        // Fly wheel
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y) && shoottoggle == false && fly <= timer) {
-            Fly = flyReverse ? -power : power;
-
-            shoottoggle = true;
-            fly = timer + 50;
-        } else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y) && shoottoggle == true && fly <= timer) {
-            Fly = 0;
-
-            shoottoggle = false;
-            fly = timer + 50;
-        }
-
-        // Reverse flywheel
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X) && flyR <= timer) {
-            flyReverse = !flyReverse;
-            flyR = timer + 50;
-        }
-
-        // flywheel power
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP) && pwr <= timer) {
-            if (power < 126) {
-                power = (int)power + 2;
-            }
-            pwr = timer + 10;
-        }    
+    }
 
     // chassis.opcontrol_tank(); // Tank control
     chassis.opcontrol_arcade_standard(ez::SPLIT); // Standard split arcade
@@ -248,6 +188,48 @@ void opcontrol() {
     // . . .
     // Put more user control code here!
     // . . .
+
+	// intake
+	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+		Intake = 127;
+	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+		Intake = -127;
+	} else {
+		Intake = 0;
+	}
+
+	// walls
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1)) {
+		wallsExpanded = !wallsExpanded;
+		Walls.set_value(wallsExpanded);
+	}
+
+	// Intake pneumatic
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2)) {
+		intakeUp = !intakeUp;
+		IntakePneumatic.set_value(intakeUp);
+	}
+
+	// Fly wheel
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y) && shoottoggle == false) {
+		Fly = flyReverse ? -power : power;
+
+		shoottoggle = true;
+	} else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y) && shoottoggle == true) {
+		Fly = 0;
+		shoottoggle = false;
+	}
+
+	// Climb Pneumatic
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
+		climb = !climb;
+		Hang.set_value(climb);
+	}
+
+	// Reverse flywheel
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
+		flyReverse = !flyReverse;
+	}
 
     pros::delay(ez::util::DELAY_TIME); // This is used for timer calculations!  Keep this ez::util::DELAY_TIME
   	}

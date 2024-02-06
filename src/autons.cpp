@@ -5,6 +5,18 @@
 // https://ez-robotics.github.io/EZ-Template/
 /////
 
+// flywheel Motor
+pros::Motor autonFlywheel(20, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCODER_COUNTS);
+
+// intake motors
+// pros::Motor IntakeRight(10, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCODER_COUNTS);
+pros::Motor autonIntake(17, pros::E_MOTOR_GEARSET_06, false, pros::E_MOTOR_ENCODER_COUNTS);
+
+// Expansion
+pros::ADIDigitalOut autonWings('H');
+pros::ADIDigitalOut autonDescore('C');
+pros::ADIDigitalOut autonIntakePneumatic('G');  
+
 // These are out of 127
 const int DRIVE_SPEED = 110;  
 const int TURN_SPEED = 90;
@@ -27,11 +39,10 @@ void default_constants() {
 }
 
 double targetAngle = 0;
-void turn_relative(double angle, int speed){
-  targetAngle += angle;
+void turn_relative(double theta_deg, int speed){
+  targetAngle += theta_deg;
   chassis.pid_turn_set(targetAngle, speed);
 }
-
 
 ///
 // Drive Example
@@ -200,3 +211,24 @@ void interfered_example() {
 // . . .
 // Make your own autonomous functions here!
 // . . .
+
+void awp() {
+  chassis.pid_drive_set(24_in, DRIVE_SPEED);
+  turn_relative(90, 100);
+}
+
+void six_ball() {
+
+}
+
+void elims_close_side() {
+
+}
+
+void elims_six_ball() {
+
+}
+
+void skills() {
+
+}

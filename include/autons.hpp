@@ -13,3 +13,10 @@ void combining_movements();
 void interfered_example();
 
 void default_constants();
+
+// my autons
+void awp();
+void six_ball();
+void elims_close_side();
+void elims_six_ball();
+void skills();

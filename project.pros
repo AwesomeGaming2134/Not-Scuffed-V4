@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "EZ-Template-Example",
+    "project_name": "Not Scuffed V4",
     "target": "v5",
     "templates": {
       "EZ-Template": {
@@ -333,7 +333,8 @@
       }
     },
     "upload_options": {
-      "icon": "planet"
+      "icon": "planet",
+      "description": "Why EZ 3.0"
     }
   }
 }

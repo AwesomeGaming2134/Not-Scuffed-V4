@@ -1,21 +1,23 @@
 #include "main.h"
+#include "autons.hpp"
 
 /////
 // For installation, upgrading, documentations and tutorials, check out our website!
 // https://ez-robotics.github.io/EZ-Template/
 /////
 
+// 1, 2, 11, 15, 18 BAD
 // flywheel Motor
-pros::Motor Fly(20, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCODER_COUNTS);
+pros::Motor flywheel(20, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCODER_COUNTS);
 
 // intake motors
 // pros::Motor IntakeRight(10, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor Intake(17, pros::E_MOTOR_GEARSET_06, false, pros::E_MOTOR_ENCODER_COUNTS);
+pros::Motor intake(17, pros::E_MOTOR_GEARSET_06, false, pros::E_MOTOR_ENCODER_COUNTS);
 
 // Expansion
-pros::ADIDigitalOut Walls('H');
-pros::ADIDigitalOut Hang('C');
-pros::ADIDigitalOut IntakePneumatic('G');  
+pros::ADIDigitalOut wings('H');
+pros::ADIDigitalOut hang('C');
+pros::ADIDigitalOut intakePneumatic('G');
 
 // controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER) ;
@@ -70,6 +72,12 @@ void initialize() {
 
 	// Autonomous Selector using LLEMU
 	ez::as::auton_selector.autons_add({
+		Auton("Autonomous Win Point, Quals.", awp),
+		Auton("6 triballs, Quals.", six_ball),
+		Auton("Defensive side rush middle, Elims.", elims_close_side),
+		Auton("6 triballs, Elims", elims_six_ball),
+		Auton("Programing Skills", skills),
+
 		Auton("Example Drive\n\nDrive forward and come back.", drive_example),
 		Auton("Example Turn\n\nTurn 3 times.", turn_example),
 		Auton("Drive and Turn\n\nDrive forward, turn, come back. ", drive_and_turn),
@@ -94,6 +102,11 @@ void initialize() {
  */
 void disabled() {
   	// . . .
+	wings.set_value(false);
+    hang.set_value(false);
+    intakePneumatic.set_value(false);
+    intake = 0;
+    flywheel = 0;
 }
 
 
@@ -149,12 +162,11 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 
-bool shoottoggle = false;
-bool intakeUp = false;
-bool wallsExpanded = false;
-bool liftExpanded = false;
-bool flyReverse = false;
-bool climb = false;
+bool flywheelOn = false;
+bool intakeDown = false;
+bool wingsExpanded = false;
+bool hangExpanded = false;
+bool flywheelReversed = false;
 int power = 125;
 
 void opcontrol() {
@@ -191,44 +203,52 @@ void opcontrol() {
 
 	// intake
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-		Intake = 127;
+		intake = 127;
 	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-		Intake = -127;
+		intake = -127;
 	} else {
-		Intake = 0;
+		intake = 0;
 	}
 
 	// walls
-	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1)) {
-		wallsExpanded = !wallsExpanded;
-		Walls.set_value(wallsExpanded);
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2)) {
+		wingsExpanded = !wingsExpanded;
+		wings.set_value(wingsExpanded);
 	}
 
 	// Intake pneumatic
-	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2)) {
-		intakeUp = !intakeUp;
-		IntakePneumatic.set_value(intakeUp);
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1)) {
+		intakeDown = !intakeDown;
+		intakePneumatic.set_value(intakeDown);
 	}
 
-	// Fly wheel
-	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y) && shoottoggle == false) {
-		Fly = flyReverse ? -power : power;
+	// Flywheel fast speed
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y) && flywheelOn == false) {
+		flywheel = flywheelReversed ? -125 : 125;
+		flywheelOn = true;
+	} else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y) && flywheelOn == true) {
+		flywheel = 0;
+		flywheelOn = false;
+	}
 
-		shoottoggle = true;
-	} else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y) && shoottoggle == true) {
-		Fly = 0;
-		shoottoggle = false;
+	// Flywheel slow speed
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X) && flywheelOn == false) {
+		flywheel = flywheelReversed ? -32 : 32;
+		flywheelOn = true;
+	} else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X) && flywheelOn == true) {
+		flywheel = 0;
+		flywheelOn = false;
 	}
 
 	// Climb Pneumatic
 	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
-		climb = !climb;
-		Hang.set_value(climb);
+		hangExpanded = !hangExpanded;
+		hang.set_value(hangExpanded);
 	}
 
 	// Reverse flywheel
-	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
-		flyReverse = !flyReverse;
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
+		flywheelReversed = !flywheelReversed;
 	}
 
     pros::delay(ez::util::DELAY_TIME); // This is used for timer calculations!  Keep this ez::util::DELAY_TIME

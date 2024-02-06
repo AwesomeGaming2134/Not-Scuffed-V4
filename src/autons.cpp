@@ -26,6 +26,12 @@ void default_constants() {
   chassis.slew_drive_constants_set(7_in, 80);
 }
 
+double targetAngle = 0;
+void turn_relative(double angle, int speed){
+  targetAngle += angle;
+  chassis.pid_turn_set(targetAngle, speed);
+}
+
 
 ///
 // Drive Example

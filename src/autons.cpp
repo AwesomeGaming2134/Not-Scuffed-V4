@@ -1,4 +1,8 @@
 #include "main.h"
+#include "pros/adi.hpp"
+#include <cmath>
+#define PI 3.141592653589793238462643383279502884197
+
 
 /////
 // For installation, upgrading, documentations and tutorials, check out our website!
@@ -13,9 +17,9 @@ pros::Motor autonFlywheel(20, pros::E_MOTOR_GEARSET_06, true, pros::E_MOTOR_ENCO
 pros::Motor autonIntake(17, pros::E_MOTOR_GEARSET_06, false, pros::E_MOTOR_ENCODER_COUNTS);
 
 // Expansion
-pros::ADIDigitalOut autonWings('H');
-pros::ADIDigitalOut autonDescore('C');
-pros::ADIDigitalOut autonIntakePneumatic('G');  
+pros::adi::DigitalOut autonWings('H');
+pros::adi::DigitalOut autonDescore('C');
+pros::adi::DigitalOut autonIntakePneumatic('G');  
 
 // These are out of 127
 const int DRIVE_SPEED = 110;  
@@ -42,6 +46,80 @@ double targetAngle = 0;
 void turn_relative(double theta_deg, int speed){
   targetAngle += theta_deg;
   chassis.pid_turn_set(targetAngle, speed);
+}
+
+
+const double DRIVETRAIN_WIDTH = 12.6; //TODO: MEASURE DRIVETRAIN WIDTH AND SET HERE FOR CURVE CALCULATIONS
+double sqr(double x){
+  return x * x;
+}
+
+double derivative(double r, double x, double xc) {
+  double dx = (0.5) * (1.0/sqrt((sqr(r) - sqr(x - xc)))) * (-2.0) * (x - xc);
+  //// return (dx >= -1000000) ? dx : -1000000;
+  return dx;
+}
+
+void Curve(double x1, double x2, double x3, double y1, double y2, double y3) {
+  double n = (-x3 + x1);
+  double m = (-x2 + x1);
+
+  double yc = (n * sqr(x2) - n * sqr(x1) - m * sqr(x3) + m * sqr(x1) - m * sqr(y3) + m * sqr(y1) + n * sqr(y2) - n * sqr(y1)) / (-2 * (-y2 + y1) * n + 2 * m * (-y3 + y1));
+  double xc = (-sqr(x3) + sqr(x1) - sqr(y3) + sqr(y1) - 2 * yc * (-y3 + y1)) / (2 * (-x3 + x1));
+
+  double r = sqrt(sqr(x1 - xc) + sqr(y1 - yc));
+
+  ////cout << "x: " << xc << " y: " << yc << " r: " << r << endl;
+
+  double ch = sqrt(sqr(x3 - x1) + sqr(y3 - y1));
+
+  ////cout << "Chord length: " << ch << endl;
+
+  double ca = 2 * asin(ch / 2 / r);
+  ////cout << "central angle: " << ca << endl;
+  ////cout << "central angle deg: " << ca * 180 / PI << endl;
+
+  double al = ca * r;
+  ////cout << "short arc length: " << al << endl;
+
+  double al2 = ca * (r + DRIVETRAIN_WIDTH);
+  ////cout << "long arc length: " << al2 << endl;
+
+  double t = al2 / 120;
+  ////cout << "\"time\": " << t << endl;
+
+  double v2 = al / t;
+  ////cout << "slow side velocity: " << v2 << endl;
+
+  double dx = derivative(r, x3, xc);
+  double dxStart = derivative(r, x1, xc);
+  ////cout << "dx: " << dx << endl;
+
+  double thetaRel = atan(dx);
+  double thetaRelStart = atan(dxStart);
+
+  double thetaStart;
+  if (x2 < xc) {
+    thetaStart = 90.0 + thetaRel * 180 / PI;
+  } else {
+    thetaStart = 90.0 - thetaRel * 180 / PI;
+  }
+
+  double thetaFinal;
+  if (x2 < xc) {
+    thetaFinal = 90.0 - thetaRel * 180 / PI;
+  } else {
+    thetaFinal = 90.0 + thetaRel * 180 / PI;
+  }
+  ////cout << "final angle: " << thetaFinal << endl;
+
+  if (x2 < xc) {
+    chassis.pid_turn_set(thetaStart, TURN_SPEED);
+    chassis.pid_swing_set(ez::LEFT_SWING, thetaFinal, 120, v2);
+  } else {
+    chassis.pid_turn_set(thetaStart, TURN_SPEED);
+    chassis.pid_swing_set(ez::RIGHT_SWING, thetaFinal, 120, v2);
+  }
 }
 
 ///
